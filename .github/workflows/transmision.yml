@@ -20,18 +20,20 @@ jobs:
           curl -L -o vid2.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
           curl -L -o logo.png "https://www.dropbox.com/scl/fi/snh8onwq9gx6zlum089j6/logo.png?rlkey=o5f2vp3q0hyaa513ucmq3sd6w&st=d3zoo3t8&dl=1"
 
-      - name: Unir y Normalizar Videos
+      - name: Unir y Transmitir
         run: |
+          # PASO 1: Unimos los videos primero y esperamos que termine
+          echo "Iniciando union de videos..."
           ffmpeg -i vid1.mp4 -i vid2.mp4 -filter_complex \
           "[0:v]scale=1280:720,fps=30,format=yuv420p[v0]; \
            [0:a]aresample=44100[a0]; \
            [1:v]scale=1280:720,fps=30,format=yuv420p[v1]; \
            [1:a]aresample=44100[a1]; \
            [v0][a0][v1][a1]concat=n=2:v=1:a=1[v][a]" \
-          -map "[v]" -map "[a]" -c:v libx264 -preset ultrafast -crf 23 -c:a aac final.mp4
+          -map "[v]" -map "[a]" -c:v libx264 -preset ultrafast -crf 23 -c:a aac -y final.mp4
 
-      - name: Retransmitir con Logo
-        run: |
+          # PASO 2: Solo cuando 'final.mp4' este listo, empezamos la transmision
+          echo "Video listo. Iniciando stream infinito..."
           ffmpeg -re -stream_loop -1 -i final.mp4 -i logo.png \
           -filter_complex "[1:v]scale=180:-1[logo_sc];[0:v][logo_sc]overlay=120:40,drawtext=text='':fontcolor=white:fontsize=24:x=120:y=210:box=1:boxcolor=black@0.5:boxborderw=5" \
           -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -maxrate 2500k -bufsize 5000k \
