@@ -1,0 +1,48 @@
+name: Transmision Constante
+on:
+  workflow_dispatch:
+
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Instalar FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Descargar Archivos
+        run: |
+          curl -L -o v1.mp4 "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1"
+          curl -L -o v2.mp4 "https://www.dropbox.com/scl/fi/ke0bvytx2vty20aki7v4j/programa3.mp4?rlkey=sywk1doldiowjomqihur3sd9m&st=rvyoisgp&dl=1"
+          curl -L -o v3.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
+          curl -L -o v4.mp4 "https://www.dropbox.com/scl/fi/hlzlru3ej964zuifbuct0/publicidad1.mp4?rlkey=kd7bwyh4gg7smirrg1abc2g84&st=e60m4z20&dl=1"
+          curl -L -o logo.png "https://www.dropbox.com/scl/fi/snh8onwq9gx6zlum089j6/logo.png?rlkey=o5f2vp3q0hyaa513ucmq3sd6w&st=d3zoo3t8&dl=1"
+
+      - name: Procesar Logo en cada Video
+        run: |
+          # Aplicamos el efecto de logo individualmente a cada video
+          for i in 1 2 3 4; do
+            # 1. Obtener duracion de este video especifico
+            DUR=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 v$i.mp4)
+            FADE_OUT=$(echo "$DUR - 3" | bc)
+            
+            # 2. Aplicar: Inicio brusco, 5s opacidad 100%, luego 80%, y fade out final de 3s
+            ffmpeg -i v$i.mp4 -i logo.png -filter_complex \
+            "[1:v]scale=180:-1,format=rgba,fade=t=out:st=$FADE_OUT:d=3:alpha=1,colorchannelmixer=aa='if(lt(t,5),1,0.8)'[logo_anim]; \
+             [0:v]scale=1280:720,fps=30,format=yuv420p[bg]; \
+             [bg][logo_anim]overlay=120:40" \
+            -c:v libx264 -preset ultrafast -crf 23 -c:a aac -ar 44100 -f mpegts temp$i.ts
+          done
+
+      - name: Unir y Transmitir
+        run: |
+          # Unimos los videos ya procesados con logo en un solo flujo continuo
+          ffmpeg -i "concat:temp1.ts|temp2.ts|temp3.ts|temp4.ts" -c copy -y listo.mp4
+
+          # Transmitir en bucle infinito
+          ffmpeg -re -stream_loop -1 -fflags +genpts -i listo.mp4 \
+          -c copy -f flv "rtmp://vs20.live.opencaster.com/opencaster/cristianhilos_314b91b0?psk=cristianhilos_314b91b0&tk=b77f89cbf4f83af5295e37a562a3379de814c3a945e7402811a589c00d91f442"
