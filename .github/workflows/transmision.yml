@@ -12,24 +12,26 @@ jobs:
       - name: Instalar FFmpeg
         run: sudo apt-get install -y ffmpeg
 
-      - name: Descargar Videos
+      - name: Descargar Archivos
         run: |
+          # Descargamos videos y logo directamente para que no fallen
           curl -L -o vid1.mp4 "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1"
           curl -L -o vid2.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
+          # REEMPLAZA ESTE LINK POR EL DE TU LOGO EN DROPBOX (terminado en dl=1)
+          curl -L -o logo.png "LINK_DE_TU_LOGO_AQUI_CON_DL=1"
 
-      - name: Crear Video Final (Sin usar CPU pesado)
+      - name: Unir Videos
         run: |
-          # Esto une los videos sin re-codificar, manteniendo la calidad original y ahorrando CPU
-          echo "file 'vid1.mp4'" > lista.txt
-          echo "file 'vid2.mp4'" >> lista.txt
+          # Creamos una lista limpia
+          printf "file 'vid1.mp4'\nfile 'vid2.mp4'" > lista.txt
+          # Unimos los videos en un solo bloque para que el salto sea forzado
           ffmpeg -f concat -safe 0 -i lista.txt -c copy -fflags +genpts final.mp4
 
-      - name: Retransmitir (Modo Ayuda - Bajos Recursos)
+      - name: Transmitir Sin Cargar CPU
         run: |
-          # Transmitimos usando el logo pero con el preset 'ultrafast' para que el CPU no sufra
-          # Usamos -copyts para que el tiempo del audio y video no se desincronice
+          # Transmisión optimizada: -preset ultrafast usa casi nada de procesador
           ffmpeg -re -stream_loop -1 -i final.mp4 -i logo.png \
-          -filter_complex "[1:v]scale=180:-1[logo];[0:v][logo]overlay=120:40,drawtext=text='':fontcolor=white:fontsize=24:x=120:y=210:box=1:boxcolor=black@0.5:boxborderw=5" \
-          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 780k -maxrate 780k -bufsize 1560k \
-          -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 \
-          -f flv "rtmp://vs20.live.opencaster.com/opencaster/cristianhilos_314b91b0?psk=cristianhilos_314b91b0&tk=b77f89cbf4f83af5295e37a562a3379de814c3a945e7402811a589c00d91f442"
+          -filter_complex "[1:v]scale=180:-1[l];[0:v][l)overlay=120:40" \
+          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 780k \
+          -pix_fmt yuv420p -c:a copy -f flv \
+          "rtmp://vs20.live.opencaster.com/opencaster/cristianhilos_314b91b0?psk=cristianhilos_314b91b0&tk=b77f89cbf4f83af5295e37a562a3379de814c3a945e7402811a589c00d91f442"
