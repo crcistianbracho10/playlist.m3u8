@@ -9,19 +9,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Instalar FFmpeg
+      - name: Instalar FFmpeg y Python
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg python3-pip
+          pip3 install requests
 
-      - name: Descargar Video 1
-        run: curl -L -o vid1.mp4 "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1"
-
-      - name: Descargar Video 2
-        run: curl -L -o vid2.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
-
-      - name: Descargar Logo
-        run: curl -L -o logo.png "https://www.dropbox.com/scl/fi/snh8onwq9gx6zlum089j6/logo.png?rlkey=o5f2vp3q0hyaa513ucmq3sd6w&st=d3zoo3t8&dl=1"
+      - name: Descargar Archivos (Modo Seguro)
+        shell: python
+        run: |
+          import requests
+          files = {
+              "vid1.mp4": "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1",
+              "vid2.mp4": "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1",
+              "logo.png": "https://www.dropbox.com/scl/fi/snh8onwq9gx6zlum089j6/logo.png?rlkey=o5f2vp3q0hyaa513ucmq3sd6w&st=d3zoo3t8&dl=1"
+          }
+          for name, url in files.items():
+              print(f"Descargando {name}...")
+              r = requests.get(url, allow_redirects=True)
+              with open(name, 'wb') as f:
+                  f.write(r.content)
+          print("Descargas completadas con éxito.")
 
       - name: Unir Videos
         run: |
