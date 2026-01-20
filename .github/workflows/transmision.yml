@@ -17,15 +17,16 @@ jobs:
           curl -L -o vid1.mp4 "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1"
           curl -L -o vid2.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
 
-      - name: Crear Lista Local
+      - name: Retransmitir con Logo y Salto de Video
         run: |
-          echo "file 'vid1.mp4'" > lista.txt
-          echo "file 'vid2.mp4'" >> lista.txt
-
-      - name: Retransmitir con Logo y Filtros
-        run: |
-          ffmpeg -re -f concat -safe 0 -stream_loop -1 -i lista.txt -i logo.png \
-          -filter_complex "[1:v]scale=180:-1[logo];[0:v][logo]overlay=120:40,drawtext=text='':fontcolor=white:fontsize=24:x=120:y=210:box=1:boxcolor=black@0.5:boxborderw=5" \
+          ffmpeg -re -i vid1.mp4 -re -i vid2.mp4 -i logo.png \
+          -filter_complex \
+          "[0:v]scale=640:360,setdar=16/9[v0]; \
+           [1:v]scale=640:360,setdar=16/9[v1]; \
+           [v0][0:a][v1][1:a]concat=n=2:v=1:a=1[v_full][a_full]; \
+           [2:v]scale=180:-1[logo]; \
+           [v_full][logo]overlay=120:40,drawtext=text='':fontcolor=white:fontsize=24:x=120:y=210:box=1:boxcolor=black@0.5:boxborderw=5[outv]" \
+          -map "[outv]" -map "[a_full]" \
           -c:v libx264 -preset ultrafast -b:v 780k -maxrate 780k -bufsize 1560k \
           -pix_fmt yuv420p -g 30 -r 15 \
           -c:a aac -b:a 128k -ar 44100 -ac 2 \
