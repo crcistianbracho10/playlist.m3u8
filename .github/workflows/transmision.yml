@@ -16,32 +16,29 @@ jobs:
 
       - name: Descargar Archivos
         run: |
-          # Video 1 (Original)
           curl -L -o vid1.mp4 "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1"
-          # Video 2 (Publicidad nueva)
           curl -L -o vid2.mp4 "https://www.dropbox.com/scl/fi/hlzlru3ej964zuifbuct0/publicidad1.mp4?rlkey=kd7bwyh4gg7smirrg1abc2g84&st=e60m4z20&dl=1"
-          # Video 3 (Original)
           curl -L -o vid3.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
-          # Video 4 (Programa nuevo)
           curl -L -o vid4.mp4 "https://www.dropbox.com/scl/fi/ke0bvytx2vty20aki7v4j/programa3.mp4?rlkey=sywk1doldiowjomqihur3sd9m&st=rvyoisgp&dl=1"
-          
-          # Logo
           curl -L -o logo.png "https://www.dropbox.com/scl/fi/snh8onwq9gx6zlum089j6/logo.png?rlkey=o5f2vp3q0hyaa513ucmq3sd6w&st=d3zoo3t8&dl=1"
 
-      - name: Transmitir sin Saltos
+      - name: Unir y Forzar Formato
         run: |
-          # Creamos la lista con los 4 videos
-          echo "file 'vid1.mp4'" > lista.txt
-          echo "file 'vid2.mp4'" >> lista.txt
-          echo "file 'vid3.mp4'" >> lista.txt
-          echo "file 'vid4.mp4'" >> lista.txt
+          # Este paso convierte los 4 videos a un solo bloque sólido (final.mp4)
+          # Esto obliga a la publicidad y al programa nuevo a entrar en el mismo molde
+          ffmpeg -i vid1.mp4 -i vid2.mp4 -i vid3.mp4 -i vid4.mp4 -filter_complex \
+          "[0:v]scale=1280:720,fps=30,format=yuv420p[v0]; [0:a]aresample=44100[a0]; \
+           [1:v]scale=1280:720,fps=30,format=yuv420p[v1]; [1:a]aresample=44100[a1]; \
+           [2:v]scale=1280:720,fps=30,format=yuv420p[v2]; [2:a]aresample=44100[a2]; \
+           [3:v]scale=1280:720,fps=30,format=yuv420p[v3]; [3:a]aresample=44100[a3]; \
+           [v0][a0][v1][a1][v2][a2][v3][a3]concat=n=4:v=1:a=1[v][a]" \
+          -map "[v]" -map "[a]" -c:v libx264 -preset ultrafast -crf 23 -c:a aac -y final.mp4
 
-          # Transmitimos con sincronización forzada de cuadros y audio
-          ffmpeg -re -f concat -safe 0 -stream_loop -1 -i lista.txt -i logo.png \
-          -filter_complex \
-          "[0:v]scale=1280:720,fps=30,setpts=N/FRAME_RATE/TB,format=yuv420p[v_sync]; \
-           [1:v]scale=180:-1[logo_sc]; \
-           [v_sync][logo_sc]overlay=120:40,drawtext=text='':fontcolor=white:fontsize=24:x=120:y=210:box=1:boxcolor=black@0.5:boxborderw=5" \
-          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2200k -maxrate 2200k -bufsize 4400k \
-          -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k -ar 44100 -af "aresample=async=1" \
+      - name: Transmitir en Bucle
+        run: |
+          # Ahora transmitimos el archivo ya unido. Aquí ya no puede haber saltos.
+          ffmpeg -re -stream_loop -1 -i final.mp4 -i logo.png \
+          -filter_complex "[1:v]scale=180:-1[logo_sc];[0:v][logo_sc]overlay=120:40,drawtext=text='':fontcolor=white:fontsize=24:x=120:y=210:box=1:boxcolor=black@0.5:boxborderw=5" \
+          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -maxrate 2500k -bufsize 5000k \
+          -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k -ar 44100 \
           -f flv "rtmp://vs20.live.opencaster.com/opencaster/cristianhilos_314b91b0?psk=cristianhilos_314b91b0&tk=b77f89cbf4f83af5295e37a562a3379de814c3a945e7402811a589c00d91f442"
