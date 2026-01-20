@@ -18,10 +18,8 @@ jobs:
           echo "file 'https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1'" >> lista.txt
 
       - name: Retransmitir
-        env:
-          URL_VIVO: ${{ secrets.URL_TRANSMISION }}
         run: |
-          ffmpeg -re -f concat -safe 0 -protocol_whitelist file,http,https,tcp,tls -stream_loop -1 -i lista.txt \
+          ffmpeg -re -f concat -safe 0 -protocol_whitelist "file,http,https,tcp,tls,rtmp" -stream_loop -1 -i lista.txt \
           -vcodec libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k \
           -pix_fmt yuv420p -g 30 -c:a aac -b:a 128k -ar 44100 \
-          -f flv "$URL_VIVO"
+          -f flv "rtmp://vs20.live.opencaster.com/opencaster/cristianhilos_314b91b0?psk=cristianhilos_314b91b0&tk=b77f89cbf4f83af5295e37a562a3379de814c3a945e7402811a589c00d91f442"
