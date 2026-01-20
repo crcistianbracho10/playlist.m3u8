@@ -20,22 +20,22 @@ jobs:
           curl -L -o vid2.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
           curl -L -o logo.png "https://www.dropbox.com/scl/fi/snh8onwq9gx6zlum089j6/logo.png?rlkey=o5f2vp3q0hyaa513ucmq3sd6w&st=d3zoo3t8&dl=1"
 
-      - name: Procesar y Transmitir
+      - name: Transmitir sin Saltos
         run: |
-          # PASO 1: Unir los videos asegurando que los tiempos sean perfectos
-          # Usamos -async 1 para que el audio no se desfase
-          ffmpeg -err_detect ignore_err -i vid1.mp4 -i vid2.mp4 -filter_complex \
-          "[0:v]scale=1280:720,fps=30,format=yuv420p[v0]; \
-           [0:a]aresample=44100[a0]; \
-           [1:v]scale=1280:720,fps=30,format=yuv420p[v1]; \
-           [1:a]aresample=44100[a1]; \
-           [v0][a0][v1][a1]concat=n=2:v=1:a=1[v][a]" \
-          -map "[v]" -map "[a]" -c:v libx264 -preset ultrafast -crf 23 -c:a aac -async 1 -y final.mp4
+          # Creamos la lista
+          echo "file 'vid1.mp4'" > lista.txt
+          echo "file 'vid2.mp4'" >> lista.txt
 
-          # PASO 2: Transmitir con sincronizacion de video constante (-vsync 1)
-          # Esto evita que el video se salte al inicio si hay un micro-corte
-          ffmpeg -re -fflags +genpts+igndts -stream_loop -1 -i final.mp4 -i logo.png \
-          -filter_complex "[1:v]scale=180:-1[logo_sc];[0:v][logo_sc]overlay=120:40,drawtext=text='':fontcolor=white:fontsize=24:x=120:y=210:box=1:boxcolor=black@0.5:boxborderw=5" \
-          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -maxrate 2500k -bufsize 5000k \
-          -pix_fmt yuv420p -g 60 -vsync 1 -c:a aac -b:a 128k -ar 44100 \
+          # Explicacion de la mejora:
+          # 1. Usamos -f concat con el parametro 'unsafe 1'
+          # 2. Aplicamos 'setpts=N/FRAME_RATE/TB' para que los tiempos de los videos se unan perfectamente
+          # 3. Mantenemos tu logo y el texto igualitos
+          
+          ffmpeg -re -f concat -safe 0 -stream_loop -1 -i lista.txt -i logo.png \
+          -filter_complex \
+          "[0:v]scale=1280:720,fps=30,setpts=N/FRAME_RATE/TB,format=yuv420p[v_sync]; \
+           [1:v]scale=180:-1[logo_sc]; \
+           [v_sync][logo_sc]overlay=120:40,drawtext=text='':fontcolor=white:fontsize=24:x=120:y=210:box=1:boxcolor=black@0.5:boxborderw=5" \
+          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2000k -maxrate 2000k -bufsize 4000k \
+          -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k -ar 44100 -af "aresample=async=1" \
           -f flv "rtmp://vs20.live.opencaster.com/opencaster/cristianhilos_314b91b0?psk=cristianhilos_314b91b0&tk=b77f89cbf4f83af5295e37a562a3379de814c3a945e7402811a589c00d91f442"
