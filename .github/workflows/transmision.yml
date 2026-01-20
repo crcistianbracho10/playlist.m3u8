@@ -1,4 +1,4 @@
-name: Transmision Constante
+name: Transmision Constante con Logo Animado
 on:
   workflow_dispatch:
 
@@ -22,22 +22,31 @@ jobs:
           curl -L -o v4.mp4 "https://www.dropbox.com/scl/fi/ke0bvytx2vty20aki7v4j/programa3.mp4?rlkey=sywk1doldiowjomqihur3sd9m&st=rvyoisgp&dl=1"
           curl -L -o logo.png "https://www.dropbox.com/scl/fi/snh8onwq9gx6zlum089j6/logo.png?rlkey=o5f2vp3q0hyaa513ucmq3sd6w&st=d3zoo3t8&dl=1"
 
-      - name: Procesamiento y Transmisión de Alta Estabilidad
+      - name: Unir Videos
         run: |
-          # PASO 1: Unificamos absolutamente todo en un contenedor intermedio sin perdida de tiempo
-          # Usamos settb y setpts para REESCRIBIR el reloj de tiempo desde cero (0)
           ffmpeg -i v1.mp4 -i v2.mp4 -i v3.mp4 -i v4.mp4 -filter_complex \
-          "[0:v]scale=1280:720,fps=30,setpts=PTS-STARTPTS[v0]; \
-           [1:v]scale=1280:720,fps=30,setpts=PTS-STARTPTS[v1]; \
-           [2:v]scale=1280:720,fps=30,setpts=PTS-STARTPTS[v2]; \
-           [3:v]scale=1280:720,fps=30,setpts=PTS-STARTPTS[v3]; \
-           [v0][0:a][v1][1:a][v2][2:a][v3][3:a]concat=n=4:v=1:a=1[v_full][a_full]" \
-          -map "[v_full]" -map "[a_full]" -c:v libx264 -preset ultrafast -crf 23 -c:a aac -ar 44100 -y listo.mp4
+          "[0:v]scale=1280:720,fps=30,format=yuv420p[v0]; \
+           [1:v]scale=1280:720,fps=30,format=yuv420p[v1]; \
+           [2:v]scale=1280:720,fps=30,format=yuv420p[v2]; \
+           [3:v]scale=1280:720,fps=30,format=yuv420p[v3]; \
+           [v0][0:a][v1][1:a][v2][2:a][v3][3:a]concat=n=4:v=1:a=1[v][a]" \
+          -map "[v]" -map "[a]" -c:v libx264 -preset ultrafast -crf 23 -c:a aac -y listo.mp4
 
-          # PASO 2: Transmitir el video 'listo.mp4' con regeneración de paquetes
-          # -re (velocidad real) y -stream_loop (bucle)
-          ffmpeg -re -stream_loop -1 -i listo.mp4 -i logo.png \
-          -filter_complex "[1:v]scale=180:-1[l];[0:v][l]overlay=120:40" \
-          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2500k -maxrate 2500k -bufsize 5000k \
+      - name: Transmitir con Logo Dinámico
+        run: |
+          # Calculamos la duración para el fade out del final
+          DURACION=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 listo.mp4)
+          FINAL_FADE=$(echo "$DURACION - 3" | bc)
+
+          # EXPLICACIÓN DEL FILTRO DE LOGO:
+          # 1. Aparece brusco (no hay fade in inicial).
+          # 2. 'alpha=if(lt(t,5),1,0.8)': Si el tiempo es menor a 5s, opacidad 1 (100%), sino 0.8 (80%).
+          # 3. 'fade=t=out': A los 3 segundos del final se desvanece.
+          ffmpeg -re -stream_loop -1 -i listo.mp4 -i logo.png -filter_complex \
+          "[1:v]scale=180:-1,format=rgba, \
+           fade=t=out:st=$FINAL_FADE:d=3:alpha=1, \
+           colorchannelmixer=aa='if(lt(t,5),1,0.8)'[logo_animado]; \
+           [0:v][logo_animado]overlay=120:40:shortest=1" \
+          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2000k -maxrate 2000k -bufsize 4000k \
           -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k -f flv \
           "rtmp://vs20.live.opencaster.com/opencaster/cristianhilos_314b91b0?psk=cristianhilos_314b91b0&tk=b77f89cbf4f83af5295e37a562a3379de814c3a945e7402811a589c00d91f442"
