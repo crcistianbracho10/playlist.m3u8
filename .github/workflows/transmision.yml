@@ -19,7 +19,10 @@ jobs:
 
       - name: Retransmitir
         run: |
-          ffmpeg -re -f concat -safe 0 -protocol_whitelist "file,http,https,tcp,tls,rtmp,rtmpt,rtmps" -stream_loop -1 -i lista.txt \
-          -vcodec libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k \
-          -pix_fmt yuv420p -g 30 -c:a aac -b:a 128k -ar 44100 \
+          ffmpeg -re -f concat -safe 0 -protocol_whitelist "file,http,https,tcp,tls,rtmp,rtmpt,rtmps" \
+          -stream_loop -1 -i lista.txt \
+          -c:v libx264 -preset veryfast -b:v 2000k -maxrate 2000k -bufsize 4000k \
+          -pix_fmt yuv420p -g 30 -r 15 \
+          -vf "scale=640:360,format=yuv420p" \
+          -c:a aac -b:a 128k -ar 44100 -ac 2 \
           -f flv "rtmp://vs20.live.opencaster.com/opencaster/cristianhilos_314b91b0?psk=cristianhilos_314b91b0&tk=b77f89cbf4f83af5295e37a562a3379de814c3a945e7402811a589c00d91f442"
