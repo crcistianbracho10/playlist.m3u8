@@ -22,6 +22,6 @@ jobs:
           URL_VIVO: ${{ secrets.URL_TRANSMISION }}
         run: |
           ffmpeg -re -f concat -safe 0 -protocol_whitelist file,http,https,tcp,tls -stream_loop -1 -i lista.txt \
-          -vcodec libx264 -preset veryfast -maxrate 2500k -bufsize 5000k \
-          -pix_fmt yuv420p -g 50 -c:a aac -b:a 128k -ar 44100 \
+          -vcodec libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k \
+          -pix_fmt yuv420p -g 30 -c:a aac -b:a 128k -ar 44100 \
           -f flv "$URL_VIVO"
