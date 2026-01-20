@@ -12,17 +12,21 @@ jobs:
       - name: Instalar FFmpeg
         run: sudo apt-get install -y ffmpeg
 
-      - name: Crear Lista
+      - name: Descargar Videos
         run: |
-          echo "file 'https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1'" > lista.txt
-          echo "file 'https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1'" >> lista.txt
+          curl -L -o vid1.mp4 "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1"
+          curl -L -o vid2.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
 
-      - name: Retransmitir
+      - name: Crear Lista Local
         run: |
-          ffmpeg -re -f concat -safe 0 -protocol_whitelist "file,http,https,tcp,tls,rtmp,rtmpt,rtmps" \
-          -stream_loop -1 -i lista.txt \
-          -c:v libx264 -preset veryfast -b:v 2000k -maxrate 2000k -bufsize 4000k \
+          echo "file 'vid1.mp4'" > lista.txt
+          echo "file 'vid2.mp4'" >> lista.txt
+
+      - name: Retransmitir con Logo y Filtros
+        run: |
+          ffmpeg -re -f concat -safe 0 -stream_loop -1 -i lista.txt -i logo.png \
+          -filter_complex "[1:v]scale=180:-1[logo];[0:v][logo]overlay=120:40,drawtext=text='':fontcolor=white:fontsize=24:x=120:y=210:box=1:boxcolor=black@0.5:boxborderw=5" \
+          -c:v libx264 -preset ultrafast -b:v 780k -maxrate 780k -bufsize 1560k \
           -pix_fmt yuv420p -g 30 -r 15 \
-          -vf "scale=640:360,format=yuv420p" \
           -c:a aac -b:a 128k -ar 44100 -ac 2 \
           -f flv "rtmp://vs20.live.opencaster.com/opencaster/cristianhilos_314b91b0?psk=cristianhilos_314b91b0&tk=b77f89cbf4f83af5295e37a562a3379de814c3a945e7402811a589c00d91f442"
