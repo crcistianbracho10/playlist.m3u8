@@ -14,25 +14,22 @@ jobs:
 
       - name: Descargar Videos
         run: |
-          curl -L -o vid1_raw.mp4 "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1"
-          curl -L -o vid2_raw.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
+          curl -L -o vid1.mp4 "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1"
+          curl -L -o vid2.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
 
-      - name: Unir y Reparar Videos (Normalización)
+      - name: Crear Video Final (Sin usar CPU pesado)
         run: |
-          # Este paso crea el video 'final.mp4' corrigiendo audio y video para que no haya desfase
-          ffmpeg -i vid1_raw.mp4 -i vid2_raw.mp4 -filter_complex \
-          "[0:v]scale=640:360,fps=30,format=yuv420p[v0]; \
-           [0:a]aresample=44100,pan=stereo|c0=c0|c1=c0[a0]; \
-           [1:v]scale=640:360,fps=30,format=yuv420p[v1]; \
-           [1:a]aresample=44100,pan=stereo|c0=c0|c1=c0[a1]; \
-           [v0][a0][v1][a1]concat=n=2:v=1:a=1[v][a]" \
-          -map "[v]" -map "[a]" -c:v libx264 -preset ultrafast -c:a aac -b:a 128k final.mp4
+          # Esto une los videos sin re-codificar, manteniendo la calidad original y ahorrando CPU
+          echo "file 'vid1.mp4'" > lista.txt
+          echo "file 'vid2.mp4'" >> lista.txt
+          ffmpeg -f concat -safe 0 -i lista.txt -c copy -fflags +genpts final.mp4
 
-      - name: Retransmitir con Logo y Audio Estable
+      - name: Retransmitir (Modo Ayuda - Bajos Recursos)
         run: |
-          # Transmitimos el video ya reparado. El filtro de logo se aplica aquí.
+          # Transmitimos usando el logo pero con el preset 'ultrafast' para que el CPU no sufra
+          # Usamos -copyts para que el tiempo del audio y video no se desincronice
           ffmpeg -re -stream_loop -1 -i final.mp4 -i logo.png \
           -filter_complex "[1:v]scale=180:-1[logo];[0:v][logo]overlay=120:40,drawtext=text='':fontcolor=white:fontsize=24:x=120:y=210:box=1:boxcolor=black@0.5:boxborderw=5" \
-          -c:v libx264 -preset ultrafast -b:v 800k -maxrate 800k -bufsize 2000k \
-          -pix_fmt yuv420p -g 60 -c:a copy \
+          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 780k -maxrate 780k -bufsize 1560k \
+          -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 \
           -f flv "rtmp://vs20.live.opencaster.com/opencaster/cristianhilos_314b91b0?psk=cristianhilos_314b91b0&tk=b77f89cbf4f83af5295e37a562a3379de814c3a945e7402811a589c00d91f442"
