@@ -17,7 +17,9 @@ jobs:
       - name: Descargar Archivos
         run: |
           curl -L -o vid1.mp4 "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1"
-          curl -L -o vid2.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
+          curl -L -o vid2.mp4 "https://www.dropbox.com/scl/fi/hlzlru3ej964zuifbuct0/publicidad1.mp4?rlkey=kd7bwyh4gg7smirrg1abc2g84&st=e60m4z20&dl=1"
+          curl -L -o vid3.mp4 "https://www.dropbox.com/scl/fi/ke0bvytx2vty20aki7v4j/programa3.mp4?rlkey=sywk1doldiowjomqihur3sd9m&st=rvyoisgp&dl=1"
+          curl -L -o vid4.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
           curl -L -o logo.png "https://www.dropbox.com/scl/fi/snh8onwq9gx6zlum089j6/logo.png?rlkey=o5f2vp3q0hyaa513ucmq3sd6w&st=d3zoo3t8&dl=1"
 
       - name: Transmitir sin Saltos
@@ -25,6 +27,8 @@ jobs:
           # Creamos la lista
           echo "file 'vid1.mp4'" > lista.txt
           echo "file 'vid2.mp4'" >> lista.txt
+          echo "file 'vid3.mp4'" >> lista.txt
+          echo "file 'vid4.mp4'" >> lista.txt
 
           # Explicacion de la mejora:
           # 1. Usamos -f concat con el parametro 'unsafe 1'
