@@ -10,28 +10,34 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Instalar FFmpeg
-        run: sudo apt-get install -y ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Descargar Archivos
         run: |
-          # Descargamos videos y logo directamente para que no fallen
+          # Descarga de videos
           curl -L -o vid1.mp4 "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1"
           curl -L -o vid2.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
-          # REEMPLAZA ESTE LINK POR EL DE TU LOGO EN DROPBOX (terminado en dl=1)
-          curl -L -o logo.png "LINK_DE_TU_LOGO_AQUI_CON_DL=1"
+          
+          # Descarga del logo (Enlace actualizado a dl=1 para descarga directa)
+          curl -L -o logo.png "https://www.dropbox.com/scl/fi/snh8onwq9gx6zlum089j6/logo.png?rlkey=o5f2vp3q0hyaa513ucmq3sd6w&st=d3zoo3t8&dl=1"
 
       - name: Unir Videos
         run: |
-          # Creamos una lista limpia
-          printf "file 'vid1.mp4'\nfile 'vid2.mp4'" > lista.txt
-          # Unimos los videos en un solo bloque para que el salto sea forzado
-          ffmpeg -f concat -safe 0 -i lista.txt -c copy -fflags +genpts final.mp4
+          # Creamos la lista para FFmpeg sin errores de formato
+          echo "file 'vid1.mp4'" > lista.txt
+          echo "file 'vid2.mp4'" >> lista.txt
+          
+          # Unimos los videos en un archivo final.mp4
+          # Esto garantiza que la transición entre videos sea fluida
+          ffmpeg -f concat -safe 0 -i lista.txt -c copy final.mp4
 
       - name: Transmitir Sin Cargar CPU
         run: |
-          # Transmisión optimizada: -preset ultrafast usa casi nada de procesador
+          # Transmisión optimizada
+          # CORRECCIÓN: Se cambió [l) por [l] y se mejoró la estabilidad del stream
           ffmpeg -re -stream_loop -1 -i final.mp4 -i logo.png \
-          -filter_complex "[1:v]scale=180:-1[l];[0:v][l)overlay=120:40" \
-          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 780k \
-          -pix_fmt yuv420p -c:a copy -f flv \
+          -filter_complex "[1:v]scale=180:-1[l];[0:v][l]overlay=120:40" \
+          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 1500k \
+          -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p \
+          -c:a aac -b:a 128k -f flv \
           "rtmp://vs20.live.opencaster.com/opencaster/cristianhilos_314b91b0?psk=cristianhilos_314b91b0&tk=b77f89cbf4f83af5295e37a562a3379de814c3a945e7402811a589c00d91f442"
