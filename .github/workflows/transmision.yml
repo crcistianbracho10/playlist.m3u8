@@ -14,27 +14,23 @@ jobs:
 
       - name: Descargar Archivos
         run: |
-          # Descarga de videos
+          # Descargamos todo usando comillas dobles y sin espacios extras
           curl -L -o vid1.mp4 "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1"
           curl -L -o vid2.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
-          
-          # Descarga del logo (Enlace actualizado a dl=1 para descarga directa)
           curl -L -o logo.png "https://www.dropbox.com/scl/fi/snh8onwq9gx6zlum089j6/logo.png?rlkey=o5f2vp3q0hyaa513ucmq3sd6w&st=d3zoo3t8&dl=1"
 
       - name: Unir Videos
         run: |
-          # Creamos la lista para FFmpeg sin errores de formato
+          # Creamos la lista de reproducción
           echo "file 'vid1.mp4'" > lista.txt
           echo "file 'vid2.mp4'" >> lista.txt
           
-          # Unimos los videos en un archivo final.mp4
-          # Esto garantiza que la transición entre videos sea fluida
+          # Unimos los videos en uno solo (final.mp4) para evitar cortes
           ffmpeg -f concat -safe 0 -i lista.txt -c copy final.mp4
 
       - name: Transmitir Sin Cargar CPU
         run: |
-          # Transmisión optimizada
-          # CORRECCIÓN: Se cambió [l) por [l] y se mejoró la estabilidad del stream
+          # Transmisión con logo fijo y loop infinito
           ffmpeg -re -stream_loop -1 -i final.mp4 -i logo.png \
           -filter_complex "[1:v]scale=180:-1[l];[0:v][l]overlay=120:40" \
           -c:v libx264 -preset ultrafast -tune zerolatency -b:v 1500k \
