@@ -9,29 +9,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Instalar FFmpeg y Python
+      - name: Instalar FFmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg python3-pip
-          pip3 install requests
+          sudo apt-get install -y ffmpeg
 
-      - name: Descargar Archivos (Modo Seguro)
-        shell: python
-        run: |
-          import requests
-          files = {
-              "vid1.mp4": "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1",
-              "vid2.mp4": "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1",
-              "logo.png": "https://www.dropbox.com/scl/fi/snh8onwq9gx6zlum089j6/logo.png?rlkey=o5f2vp3q0hyaa513ucmq3sd6w&st=d3zoo3t8&dl=1"
-          }
-          for name, url in files.items():
-              print(f"Descargando {name}...")
-              r = requests.get(url, allow_redirects=True)
-              with open(name, 'wb') as f:
-                  f.write(r.content)
-          print("Descargas completadas con éxito.")
+      - name: Descargar Video 1
+        run: curl -L -o vid1.mp4 "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1"
 
-      - name: Unir Videos
+      - name: Descargar Video 2
+        run: curl -L -o vid2.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
+
+      - name: Descargar Logo
+        run: curl -L -o logo.png "https://www.dropbox.com/scl/fi/snh8onwq9gx6zlum089j6/logo.png?rlkey=o5f2vp3q0hyaa513ucmq3sd6w&st=d3zoo3t8&dl=1"
+
+      - name: Preparar
         run: |
           echo "file 'vid1.mp4'" > lista.txt
           echo "file 'vid2.mp4'" >> lista.txt
@@ -40,8 +32,7 @@ jobs:
       - name: Transmitir
         run: |
           ffmpeg -re -stream_loop -1 -i final.mp4 -i logo.png \
-          -filter_complex "[1:v]scale=180:-1[l];[0:v][l]overlay=120:40" \
-          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 1500k \
-          -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p \
-          -c:a aac -b:a 128k -f flv \
+          -filter_complex "[1:v]scale=250:-1[l];[0:v][l]overlay=W-w-20:20" \
+          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2000k \
+          -pix_fmt yuv420p -c:a aac -b:a 128k -f flv \
           "rtmp://vs20.live.opencaster.com/opencaster/cristianhilos_314b91b0?psk=cristianhilos_314b91b0&tk=b77f89cbf4f83af5295e37a562a3379de814c3a945e7402811a589c00d91f442"
