@@ -16,30 +16,32 @@ jobs:
 
       - name: Descargar Archivos
         run: |
+          # Video 1 (Original)
           curl -L -o vid1.mp4 "https://www.dropbox.com/scl/fi/v5p2c4jpbczpeyo90gjn5/programa1.mp4?rlkey=dgjjbx2er3hfdpc9m117wp0c2&st=l5cstbfh&dl=1"
+          # Video 2 (Publicidad nueva)
           curl -L -o vid2.mp4 "https://www.dropbox.com/scl/fi/hlzlru3ej964zuifbuct0/publicidad1.mp4?rlkey=kd7bwyh4gg7smirrg1abc2g84&st=e60m4z20&dl=1"
-          curl -L -o vid3.mp4 "https://www.dropbox.com/scl/fi/ke0bvytx2vty20aki7v4j/programa3.mp4?rlkey=sywk1doldiowjomqihur3sd9m&st=rvyoisgp&dl=1"
-          curl -L -o vid4.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
+          # Video 3 (Original)
+          curl -L -o vid3.mp4 "https://www.dropbox.com/scl/fi/48dngz7t9xtbn18h6v839/programa2.mp4?rlkey=lms05w9e81b5suv5idnsz2e90&st=f02aau3m&dl=1"
+          # Video 4 (Programa nuevo)
+          curl -L -o vid4.mp4 "https://www.dropbox.com/scl/fi/ke0bvytx2vty20aki7v4j/programa3.mp4?rlkey=sywk1doldiowjomqihur3sd9m&st=rvyoisgp&dl=1"
+          
+          # Logo
           curl -L -o logo.png "https://www.dropbox.com/scl/fi/snh8onwq9gx6zlum089j6/logo.png?rlkey=o5f2vp3q0hyaa513ucmq3sd6w&st=d3zoo3t8&dl=1"
 
       - name: Transmitir sin Saltos
         run: |
-          # Creamos la lista
+          # Creamos la lista con los 4 videos
           echo "file 'vid1.mp4'" > lista.txt
           echo "file 'vid2.mp4'" >> lista.txt
           echo "file 'vid3.mp4'" >> lista.txt
           echo "file 'vid4.mp4'" >> lista.txt
 
-          # Explicacion de la mejora:
-          # 1. Usamos -f concat con el parametro 'unsafe 1'
-          # 2. Aplicamos 'setpts=N/FRAME_RATE/TB' para que los tiempos de los videos se unan perfectamente
-          # 3. Mantenemos tu logo y el texto igualitos
-          
+          # Transmitimos con sincronización forzada de cuadros y audio
           ffmpeg -re -f concat -safe 0 -stream_loop -1 -i lista.txt -i logo.png \
           -filter_complex \
           "[0:v]scale=1280:720,fps=30,setpts=N/FRAME_RATE/TB,format=yuv420p[v_sync]; \
            [1:v]scale=180:-1[logo_sc]; \
            [v_sync][logo_sc]overlay=120:40,drawtext=text='':fontcolor=white:fontsize=24:x=120:y=210:box=1:boxcolor=black@0.5:boxborderw=5" \
-          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2000k -maxrate 2000k -bufsize 4000k \
+          -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2200k -maxrate 2200k -bufsize 4400k \
           -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k -ar 44100 -af "aresample=async=1" \
           -f flv "rtmp://vs20.live.opencaster.com/opencaster/cristianhilos_314b91b0?psk=cristianhilos_314b91b0&tk=b77f89cbf4f83af5295e37a562a3379de814c3a945e7402811a589c00d91f442"
